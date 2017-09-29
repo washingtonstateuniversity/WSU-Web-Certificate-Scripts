@@ -13,7 +13,7 @@ if [[ "wsuwp-prod-01.web.wsu.edu." = $dns || "134.121.140.68" = $dns ]]; then
     template="le-cert.template.conf"
   fi
 
-  cp $template nginx-config/$domain.conf
+  cp templates/$template nginx-config/$domain.conf
 
   sed -i '' -e "s/WWWDOMAIN/www.$domain/g" nginx-config/$domain.conf
   sed -i '' -e "s/DOMAINS/$domain www.$domain/g" nginx-config/$domain.conf
