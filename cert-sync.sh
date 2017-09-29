@@ -20,5 +20,5 @@ if [[ "wsuwp-prod-01.web.wsu.edu." = $dns || "134.121.140.68" = $dns ]]; then
 
   sed -i '' -e "s/DOMAIN/$domain/g" nginx-config/$domain.conf
 else
-  echo "Domain not ready"
+  echo "Public DNS records are not ready for certificate authorization."
 fi
