@@ -18,13 +18,13 @@ if [[ "wsuwp-prod-01.web.wsu.edu." = $dns || "134.121.140.68" = $dns ]]; then
 
   cp templates/$template nginx-config/$domain.conf
 
-  sed -i '' -e "s/WWWDOMAIN/www.$domain/g" nginx-config/$domain.conf
-  sed -i '' -e "s/DOMAINS/$domain www.$domain/g" nginx-config/$domain.conf
+  sed -i -e "s/WWWDOMAIN/www.$domain/g" nginx-config/$domain.conf
+  sed -i -e "s/DOMAINS/$domain www.$domain/g" nginx-config/$domain.conf
 
-  sed -i '' -e "s/DOMAIN/$domain/g" nginx-config/$domain.conf
+  sed -i -e "s/DOMAIN/$domain/g" nginx-config/$domain.conf
 
-  sed -i '' -e "s/GENERATED/$generated/g" nginx-config/$domain.conf
-  sed -i '' -e "s/GENERATOR/$generator/g" nginx-config/$domain.conf
+  sed -i -e "s/GENERATED/$generated/g" nginx-config/$domain.conf
+  sed -i -e "s/GENERATOR/$generator/g" nginx-config/$domain.conf
 else
   echo "Public DNS records are not ready for certificate authorization."
 fi
