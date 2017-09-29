@@ -1,6 +1,45 @@
 #!/bin/bash
+#
+# Request certificates through Let's Encrypt:
+#   wsucert request domain.wsu.edu
+#   wsucert request domain.wsu.edu no-www
+#
+# Deploy nginx configurations after successful request(s):
+#   wsucert deploy
+#   wsucert deploy force
 
-if [[ ! -z "$1" && "deploy" = $1 ]]; then
+if [[ ! -z "$1" && "request" = $1 ]]; then
+  domain=$2
+
+  dns=$(dig @8.8.8.8 +short "$domain")
+  dns=(${dns[@]})
+  dns="${dns[0]}"
+
+  generated=$(date)
+  generator=$(whoami)
+
+  if [[ "wsuwp-prod-01.web.wsu.edu." = $dns || "134.121.140.68" = $dns ]]; then
+    if [[ ! -z "$3" && "no-www" = "$3" ]]; then
+      certbot-auto certonly --webroot -w /var/www/wordpress/ -d $domain
+      template="le-cert-no-www.template.conf"
+    else
+      certbot-auto certonly --webroot -w /var/www/wordpress/ -d $domain -d www.$domain
+      template="le-cert.template.conf"
+    fi
+
+    cp templates/$template nginx-config/$domain.conf
+
+    sed -i -e "s/WWWDOMAIN/www.$domain/g" nginx-config/$domain.conf
+    sed -i -e "s/DOMAINS/$domain www.$domain/g" nginx-config/$domain.conf
+
+    sed -i -e "s/DOMAIN/$domain/g" nginx-config/$domain.conf
+
+    sed -i -e "s/GENERATED/$generated/g" nginx-config/$domain.conf
+    sed -i -e "s/GENERATOR/$generator/g" nginx-config/$domain.conf
+  else
+    echo "Public DNS records are not ready for certificate authorization."
+  fi
+elif [[ ! -z "$1" && "deploy" = $1 ]]; then
   force=0
   if [[ ! -z "$2" && "force" = $2 ]]; then
     force=1
@@ -35,4 +74,6 @@ if [[ ! -z "$1" && "deploy" = $1 ]]; then
 
   echo "Configuration deployed and nginx reloaded."
   exit 0
+else
+  echo "This script supports the request and deploy commands."
 fi
