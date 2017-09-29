@@ -74,6 +74,22 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 
   echo "Configuration deployed and nginx reloaded."
   exit 0
+elif [[ ! -z "$1" && "check" = $1 ]]; then
+  domain=$2
+
+  if [[ -z "$3" || "date" = $3 ]]; then
+    result=$(echo | openssl s_client -showcerts -servername $domain -connect $domain:443 2>/dev/null | openssl x509 -inform pem -noout -dates | grep notAfter)
+    result=${result:9}
+
+    echo $domain $result
+  elif [[ ! -z "$3" && "issuer" = $3 ]]; then
+    result=$(echo | openssl s_client -showcerts -servername $domain -connect $domain:443 2>/dev/null | openssl x509 -inform pem -noout -issuer )
+    str=${result/CN*/}
+    strpos=${#str}
+    strpos=$(( $strpos + 3 ));
+
+    echo $domain ${result:$strpos}
+  fi
 else
   echo "This script supports the request and deploy commands."
 fi
