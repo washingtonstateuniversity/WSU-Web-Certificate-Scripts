@@ -1,17 +1,20 @@
 domain=$1
 
 if [[ $(dig cname @8.8.8.8 +short "$domain" | grep wsuwp-prod-01 ) ]]; then
-  if [[ $(curl -Ls http://"$domain"/cert_status.txt | grep https) ]]; then
-    echo "Already configured for HTTPS"
+  if [[ ! -z "$2" && "no-www" = "$2" ]]; then
+    certbot-auto certonly --webroot -w /var/www/wordpress/ -d $domain
+    template="le-cert-no-www.template.conf"
   else
-    echo "Certificate required"
     certbot-auto certonly --webroot -w /var/www/wordpress/ -d $domain -d www.$domain
-    #certbot-auto certonly --webroot -w /var/www/wordpress/ -d $domain
-    cp le-cert.template /home/ucadmin/nginx-deploy/$domain.conf
-    sed -i -e "s/WWWDOMAIN/www.$domain/g" /home/ucadmin/nginx-deploy/$domain.conf
-    sed -i -e "s/DOMAINS/$domain www.$domain/g" /home/ucadmin/nginx-deploy/$domain.conf
-    sed -i -e "s/DOMAIN/$domain/g" /home/ucadmin/nginx-deploy/$domain.conf
+    template="le-cert.template.conf"
   fi
+
+  cp $template nginx-config/$domain.conf
+
+  sed -i '' -e "s/WWWDOMAIN/www.$domain/g" nginx-config/$domain.conf
+  sed -i '' -e "s/DOMAINS/$domain www.$domain/g" nginx-config/$domain.conf
+
+  sed -i '' -e "s/DOMAIN/$domain/g" nginx-config/$domain.conf
 else
   echo "Domain not ready"
 fi
