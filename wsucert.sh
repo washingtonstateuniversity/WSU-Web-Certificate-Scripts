@@ -131,6 +131,7 @@ elif [[ ! -z "$1" && "check" = $1 ]]; then
     result=${result:9}
 
     echo $domain $result
+    exit 0
   elif [[ ! -z "$3" && "issuer" = $3 ]]; then
     result=$(echo | openssl s_client -showcerts -servername $domain -connect $domain:443 2>/dev/null | openssl x509 -inform pem -noout -issuer )
     str=${result/CN*/}
@@ -138,14 +139,18 @@ elif [[ ! -z "$1" && "check" = $1 ]]; then
     strpos=$(( $strpos + 3 ));
 
     echo $domain ${result:$strpos}
+    exit 0
   fi
 elif [[ ! -z "$1" && "generate" = $1 ]]; then
     if [[ ! -z "$2" && "domains" = $2 ]]; then
         wp --path=/var/www/wordpress site list --fields=domain --format=csv | sort | uniq -c | awk '{print $2}' > domains.txt
         echo "List of unique domains generated in domains.txt"
+        exit 0
     else
         echo "Only domains can be generated at this time."
+        exit 1
     fi
 else
   echo "This script supports the request, deploy, revert, check, and domains commands."
+  exit 1
 fi
