@@ -84,6 +84,42 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 
   echo "Configuration deployed and nginx reloaded."
   exit 0
+elif [[ ! -z "$1" && "revert" = $1 ]]; then
+  backup=$2
+
+  sudo rm -rf ./revert-temp
+  mkdir ./revert-temp
+  if [[ ! -z $backup && -f $backup ]]; then
+    sudo tar xpf $backup -C ./revert-temp
+
+    if [[ ! -d "./revert-temp/sites-generated" || ! -d "./revert-temp/sites-manual" ]]; then
+      echo "Backup file did not contain necessary directories."
+      exit 1
+    fi
+    sudo rm -rf /etc/nginx/sites-generated
+    sudo rm -rf /etc/nginx/sites-manual
+    sudo cp -fr ./revert-temp/sites-manual /etc/nginx/
+    sudo cp -fr ./revert-temp/sites-generated /etc/nginx/
+
+    # Test the nginx configuration with the new files in place.
+    post_deploy="$(sudo nginx -t 2>&1 > /dev/null)"
+
+    # A successful nginx test will result in a 131 character long STDERR message.
+    if [[ 131 != ${#post_deploy} ]]; then
+      echo $post_deploy
+      echo ""
+      echo "Post-revert nginx configuration has errors. Please correct these and reload nginx manually."
+      exit 1
+    fi
+
+    deploy="$(sudo service nginx reload)"
+
+    echo "Configuration deployed and nginx reloaded."
+    exit 0
+  else
+    echo "Please provide the filename for an existing backup."
+    exit 1
+  fi
 elif [[ ! -z "$1" && "check" = $1 ]]; then
   domain=$2
 
