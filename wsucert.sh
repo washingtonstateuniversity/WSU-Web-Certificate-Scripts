@@ -71,7 +71,9 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
   timestamp=$(date +%Y%m%d-%H%M)
   sudo tar cpzf ~/nginx-config-back-$timestamp.tar --exclude="cache*" --exclude="ssl*" -C /etc/nginx/ .
 
-  mv ~/wsucert-nginx-config/*.conf /etc/nginx/sites-generated/
+  chmod 664 ~/wsucert-nginx-config/*.conf
+  sudo chown root:ucadmin ~/wsucert-nginx-config/*.conf
+  sudo mv ~/wsucert-nginx-config/*.conf /etc/nginx/sites-generated/
 
   # Test the nginx configuration with the new files in place.
   post_deploy="$(sudo nginx -t 2>&1 > /dev/null)"
