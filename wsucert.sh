@@ -8,6 +8,9 @@
 #   wsucert deploy
 #   wsucert deploy force
 #
+# Revert nginx configuration after a failed deployment:
+#   wsucert revert [backup-filename]
+#
 # Check an existing certificate's expiration date and issuer:
 #   wsucert check web.wsu.edu
 #
@@ -63,6 +66,10 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
     exit 1
   fi
 
+  # Create a backup of the existing nginx configuration for easy reversal.
+  timestamp=$(date +%Y%m%d-%H%M)
+  sudo tar cpzf nginx-config-back-$timestamp.tar --exclude="cache*" --exclude="ssl*" -C /etc/nginx/ .
+
   mv nginx-config/*.conf /etc/nginx/sites-generated/
 
   # Test the nginx configuration with the new files in place.
@@ -80,6 +87,42 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 
   echo "Configuration deployed and nginx reloaded."
   exit 0
+elif [[ ! -z "$1" && "revert" = $1 ]]; then
+  backup=$2
+
+  sudo rm -rf ./revert-temp
+  mkdir ./revert-temp
+  if [[ ! -z $backup && -f $backup ]]; then
+    sudo tar xpf $backup -C ./revert-temp
+
+    if [[ ! -d "./revert-temp/sites-generated" || ! -d "./revert-temp/sites-manual" ]]; then
+      echo "Backup file did not contain necessary directories."
+      exit 1
+    fi
+    sudo rm -rf /etc/nginx/sites-generated
+    sudo rm -rf /etc/nginx/sites-manual
+    sudo cp -fr ./revert-temp/sites-manual /etc/nginx/
+    sudo cp -fr ./revert-temp/sites-generated /etc/nginx/
+
+    # Test the nginx configuration with the new files in place.
+    post_deploy="$(sudo nginx -t 2>&1 > /dev/null)"
+
+    # A successful nginx test will result in a 131 character long STDERR message.
+    if [[ 131 != ${#post_deploy} ]]; then
+      echo $post_deploy
+      echo ""
+      echo "Post-revert nginx configuration has errors. Please correct these and reload nginx manually."
+      exit 1
+    fi
+
+    deploy="$(sudo service nginx reload)"
+
+    echo "Configuration deployed and nginx reloaded."
+    exit 0
+  else
+    echo "Please provide the filename for an existing backup."
+    exit 1
+  fi
 elif [[ ! -z "$1" && "check" = $1 ]]; then
   domain=$2
 
@@ -88,6 +131,7 @@ elif [[ ! -z "$1" && "check" = $1 ]]; then
     result=${result:9}
 
     echo $domain $result
+    exit 0
   elif [[ ! -z "$3" && "issuer" = $3 ]]; then
     result=$(echo | openssl s_client -showcerts -servername $domain -connect $domain:443 2>/dev/null | openssl x509 -inform pem -noout -issuer )
     str=${result/CN*/}
@@ -95,14 +139,18 @@ elif [[ ! -z "$1" && "check" = $1 ]]; then
     strpos=$(( $strpos + 3 ));
 
     echo $domain ${result:$strpos}
+    exit 0
   fi
 elif [[ ! -z "$1" && "generate" = $1 ]]; then
     if [[ ! -z "$2" && "domains" = $2 ]]; then
         wp --path=/var/www/wordpress site list --fields=domain --format=csv | sort | uniq -c | awk '{print $2}' > domains.txt
         echo "List of unique domains generated in domains.txt"
+        exit 0
     else
         echo "Only domains can be generated at this time."
+        exit 1
     fi
 else
-  echo "This script supports the request, deploy, check, and domains commands."
+  echo "This script supports the request, deploy, revert, check, and domains commands."
+  exit 1
 fi
