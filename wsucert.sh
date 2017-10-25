@@ -10,6 +10,9 @@
 #
 # Check an existing certificate's expiration date and issuer:
 #   wsucert check web.wsu.edu
+#
+# Generate a text file containing a list of current domains:
+#   wsucert generate domains
 
 if [[ ! -z "$1" && "request" = $1 ]]; then
   domain=$2
@@ -93,6 +96,13 @@ elif [[ ! -z "$1" && "check" = $1 ]]; then
 
     echo $domain ${result:$strpos}
   fi
+elif [[ ! -z "$1" && "generate" = $1 ]]; then
+    if [[ ! -z "$2" && "domains" = $2 ]]; then
+        wp --path=/var/www/wordpress site list --fields=domain --format=csv | sort | uniq -c | awk '{print $2}' > domains.txt
+        echo "List of unique domains generated in domains.txt"
+    else
+        echo "Only domains can be generated at this time."
+    fi
 else
-  echo "This script supports the request and deploy commands."
+  echo "This script supports the request, deploy, check, and domains commands."
 fi
