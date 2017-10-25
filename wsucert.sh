@@ -36,15 +36,16 @@ if [[ ! -z "$1" && "request" = $1 ]]; then
       template="le-cert.template.conf"
     fi
 
-    cp templates/$template nginx-config/$domain.conf
+    mkdir ~/wsucert-nginx-config
+    cp /opt/wsucert/templates/$template ~/wsucert-nginx-config/$domain.conf
 
-    sed -i -e "s/WWWDOMAIN/www.$domain/g" nginx-config/$domain.conf
-    sed -i -e "s/DOMAINS/$domain www.$domain/g" nginx-config/$domain.conf
+    sed -i -e "s/WWWDOMAIN/www.$domain/g" ~/wsucert-nginx-config/$domain.conf
+    sed -i -e "s/DOMAINS/$domain www.$domain/g" ~/wsucert-nginx-config/$domain.conf
 
-    sed -i -e "s/DOMAIN/$domain/g" nginx-config/$domain.conf
+    sed -i -e "s/DOMAIN/$domain/g" ~/wsucert-nginx-config/$domain.conf
 
-    sed -i -e "s/GENERATED/$generated/g" nginx-config/$domain.conf
-    sed -i -e "s/GENERATOR/$generator/g" nginx-config/$domain.conf
+    sed -i -e "s/GENERATED/$generated/g" ~/wsucert-nginx-config/$domain.conf
+    sed -i -e "s/GENERATOR/$generator/g" ~/wsucert-nginx-config/$domain.conf
   else
     echo "Public DNS records are not ready for certificate authorization."
   fi
@@ -68,9 +69,9 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 
   # Create a backup of the existing nginx configuration for easy reversal.
   timestamp=$(date +%Y%m%d-%H%M)
-  sudo tar cpzf nginx-config-back-$timestamp.tar --exclude="cache*" --exclude="ssl*" -C /etc/nginx/ .
+  sudo tar cpzf ~/nginx-config-back-$timestamp.tar --exclude="cache*" --exclude="ssl*" -C /etc/nginx/ .
 
-  mv nginx-config/*.conf /etc/nginx/sites-generated/
+  mv ~/wsucert-nginx-config/*.conf /etc/nginx/sites-generated/
 
   # Test the nginx configuration with the new files in place.
   post_deploy="$(sudo nginx -t 2>&1 > /dev/null)"
@@ -90,19 +91,19 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 elif [[ ! -z "$1" && "revert" = $1 ]]; then
   backup=$2
 
-  sudo rm -rf ./revert-temp
-  mkdir ./revert-temp
+  sudo rm -rf ~/revert-temp
+  mkdir ~/revert-temp
   if [[ ! -z $backup && -f $backup ]]; then
-    sudo tar xpf $backup -C ./revert-temp
+    sudo tar xpf $backup -C ~/revert-temp
 
-    if [[ ! -d "./revert-temp/sites-generated" || ! -d "./revert-temp/sites-manual" ]]; then
+    if [[ ! -d "~/revert-temp/sites-generated" || ! -d "~/revert-temp/sites-manual" ]]; then
       echo "Backup file did not contain necessary directories."
       exit 1
     fi
     sudo rm -rf /etc/nginx/sites-generated
     sudo rm -rf /etc/nginx/sites-manual
-    sudo cp -fr ./revert-temp/sites-manual /etc/nginx/
-    sudo cp -fr ./revert-temp/sites-generated /etc/nginx/
+    sudo cp -fr ~/revert-temp/sites-manual /etc/nginx/
+    sudo cp -fr ~/revert-temp/sites-generated /etc/nginx/
 
     # Test the nginx configuration with the new files in place.
     post_deploy="$(sudo nginx -t 2>&1 > /dev/null)"
@@ -143,7 +144,7 @@ elif [[ ! -z "$1" && "check" = $1 ]]; then
   fi
 elif [[ ! -z "$1" && "generate" = $1 ]]; then
     if [[ ! -z "$2" && "domains" = $2 ]]; then
-        wp --path=/var/www/wordpress site list --fields=domain --format=csv | sort | uniq -c | awk '{print $2}' > domains.txt
+        wp --path=/var/www/wordpress site list --fields=domain --format=csv | sort | uniq -c | awk '{print $2}' > ~/domains.txt
         echo "List of unique domains generated in domains.txt"
         exit 0
     else
