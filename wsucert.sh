@@ -7,6 +7,9 @@
 # Deploy nginx configurations after successful request(s):
 #   wsucert deploy
 #   wsucert deploy force
+#
+# Check an existing certificate's expiration date and issuer:
+#   wsucert check web.wsu.edu
 
 if [[ ! -z "$1" && "request" = $1 ]]; then
   domain=$2
