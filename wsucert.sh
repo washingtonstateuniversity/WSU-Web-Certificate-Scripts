@@ -157,6 +157,6 @@ elif [[ ! -z "$1" && "generate" = $1 ]]; then
         exit 1
     fi
 else
-  echo "This script supports the request, deploy, revert, check, and domains commands."
+  echo "This script supports the request, deploy, revert, check, and generate commands."
   exit 1
 fi
