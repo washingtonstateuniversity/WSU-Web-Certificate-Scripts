@@ -65,7 +65,7 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 
   # Create a backup of the existing nginx configuration for easy reversal.
   timestamp=$(date +%Y%m%d-%H%M)
-  sudo tar --create --file=./nginx-config-back-$timestamp.tar /etc/nginx
+  sudo tar cpzf nginx-config-back-$timestamp.tar --exclude="cache*" --exclude="ssl*" -C /etc/nginx/ .
 
   mv nginx-config/*.conf /etc/nginx/sites-generated/
 
