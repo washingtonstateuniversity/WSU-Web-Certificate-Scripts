@@ -8,6 +8,9 @@
 #   wsucert deploy
 #   wsucert deploy force
 #
+# Revert nginx configuration after a failed deployment:
+#   wsucert revert [backup-filename]
+#
 # Check an existing certificate's expiration date and issuer:
 #   wsucert check web.wsu.edu
 #
@@ -144,5 +147,5 @@ elif [[ ! -z "$1" && "generate" = $1 ]]; then
         echo "Only domains can be generated at this time."
     fi
 else
-  echo "This script supports the request, deploy, check, and domains commands."
+  echo "This script supports the request, deploy, revert, check, and domains commands."
 fi
