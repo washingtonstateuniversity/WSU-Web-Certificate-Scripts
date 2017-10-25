@@ -17,6 +17,9 @@
 # Generate a text file containing a list of current domains:
 #   wsucert generate domains
 
+# Capture the user's home directory for use throughout.
+home_directory=$(echo ~/)
+
 if [[ ! -z "$1" && "request" = $1 ]]; then
   domain=$2
 
@@ -36,15 +39,16 @@ if [[ ! -z "$1" && "request" = $1 ]]; then
       template="le-cert.template.conf"
     fi
 
-    cp templates/$template nginx-config/$domain.conf
+    mkdir ${home_directory}wsucert-nginx-config
+    cp /opt/wsucert/templates/$template ${home_directory}wsucert-nginx-config/$domain.conf
 
-    sed -i -e "s/WWWDOMAIN/www.$domain/g" nginx-config/$domain.conf
-    sed -i -e "s/DOMAINS/$domain www.$domain/g" nginx-config/$domain.conf
+    sed -i -e "s/WWWDOMAIN/www.$domain/g" ${home_directory}wsucert-nginx-config/$domain.conf
+    sed -i -e "s/DOMAINS/$domain www.$domain/g" ${home_directory}wsucert-nginx-config/$domain.conf
 
-    sed -i -e "s/DOMAIN/$domain/g" nginx-config/$domain.conf
+    sed -i -e "s/DOMAIN/$domain/g" ${home_directory}wsucert-nginx-config/$domain.conf
 
-    sed -i -e "s/GENERATED/$generated/g" nginx-config/$domain.conf
-    sed -i -e "s/GENERATOR/$generator/g" nginx-config/$domain.conf
+    sed -i -e "s/GENERATED/$generated/g" ${home_directory}wsucert-nginx-config/$domain.conf
+    sed -i -e "s/GENERATOR/$generator/g" ${home_directory}wsucert-nginx-config/$domain.conf
   else
     echo "Public DNS records are not ready for certificate authorization."
   fi
@@ -68,9 +72,11 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 
   # Create a backup of the existing nginx configuration for easy reversal.
   timestamp=$(date +%Y%m%d-%H%M)
-  sudo tar cpzf nginx-config-back-$timestamp.tar --exclude="cache*" --exclude="ssl*" -C /etc/nginx/ .
+  sudo tar cpzf ${home_directory}nginx-config-back-$timestamp.tar --exclude="cache*" --exclude="ssl*" -C /etc/nginx/ .
 
-  mv nginx-config/*.conf /etc/nginx/sites-generated/
+  chmod 664 ${home_directory}wsucert-nginx-config/*.conf
+  sudo chown root:ucadmin ${home_directory}wsucert-nginx-config/*.conf
+  sudo mv ${home_directory}wsucert-nginx-config/*.conf /etc/nginx/sites-generated/
 
   # Test the nginx configuration with the new files in place.
   post_deploy="$(sudo nginx -t 2>&1 > /dev/null)"
@@ -90,19 +96,19 @@ elif [[ ! -z "$1" && "deploy" = $1 ]]; then
 elif [[ ! -z "$1" && "revert" = $1 ]]; then
   backup=$2
 
-  sudo rm -rf ./revert-temp
-  mkdir ./revert-temp
+  sudo rm -rf ${home_directory}revert-temp
+  mkdir ${home_directory}revert-temp
   if [[ ! -z $backup && -f $backup ]]; then
-    sudo tar xpf $backup -C ./revert-temp
+    sudo tar xpf $backup -C ${home_directory}revert-temp
 
-    if [[ ! -d "./revert-temp/sites-generated" || ! -d "./revert-temp/sites-manual" ]]; then
+    if [[ ! -d "${home_directory}revert-temp/sites-generated" || ! -d "${home_directory}revert-temp/sites-manual" ]]; then
       echo "Backup file did not contain necessary directories."
       exit 1
     fi
     sudo rm -rf /etc/nginx/sites-generated
     sudo rm -rf /etc/nginx/sites-manual
-    sudo cp -fr ./revert-temp/sites-manual /etc/nginx/
-    sudo cp -fr ./revert-temp/sites-generated /etc/nginx/
+    sudo cp -fr ${home_directory}revert-temp/sites-manual /etc/nginx/
+    sudo cp -fr ${home_directory}revert-temp/sites-generated /etc/nginx/
 
     # Test the nginx configuration with the new files in place.
     post_deploy="$(sudo nginx -t 2>&1 > /dev/null)"
@@ -143,7 +149,7 @@ elif [[ ! -z "$1" && "check" = $1 ]]; then
   fi
 elif [[ ! -z "$1" && "generate" = $1 ]]; then
     if [[ ! -z "$2" && "domains" = $2 ]]; then
-        wp --path=/var/www/wordpress site list --fields=domain --format=csv | sort | uniq -c | awk '{print $2}' > domains.txt
+        wp --path=/var/www/wordpress site list --fields=domain --format=csv | sort | uniq -c | awk '{print $2}' > ${home_directory}domains.txt
         echo "List of unique domains generated in domains.txt"
         exit 0
     else
@@ -151,6 +157,6 @@ elif [[ ! -z "$1" && "generate" = $1 ]]; then
         exit 1
     fi
 else
-  echo "This script supports the request, deploy, revert, check, and domains commands."
+  echo "This script supports the request, deploy, revert, check, and generate commands."
   exit 1
 fi
