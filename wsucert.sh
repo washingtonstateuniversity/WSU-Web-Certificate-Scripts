@@ -52,6 +52,15 @@ if [[ ! -z "$1" && "request" = $1 ]]; then
   else
     echo "Public DNS records are not ready for certificate authorization."
   fi
+elif [[ ! -z "$1" && "dns" = $1 ]]; then
+  domain=$2
+
+  dns=$(dig @8.8.8.8 +short "$domain")
+  dns=(${dns[@]})
+  dns="${dns[0]}"
+
+  echo $domain $dns
+  exit 0
 elif [[ ! -z "$1" && "deploy" = $1 ]]; then
   force=0
   if [[ ! -z "$2" && "force" = $2 ]]; then
@@ -129,6 +138,19 @@ elif [[ ! -z "$1" && "revert" = $1 ]]; then
     echo "Please provide the filename for an existing backup."
     exit 1
   fi
+elif [[ ! -z "$1" && "validate" = $1 ]]; then
+  domain=$2
+
+  result=$(echo | openssl s_client -showcerts -servername $domain -connect $domain:443 2>/dev/null | openssl x509 -inform pem -noout -text | grep "DNS:$domain")
+  result=${result:9}
+
+  if [[ $result == *"$domain"* ]]; then
+    echo $domain "Valid"
+  else
+    echo $domain "Invalid"
+  fi
+  exit 0
+
 elif [[ ! -z "$1" && "check" = $1 ]]; then
   domain=$2
 
@@ -157,6 +179,6 @@ elif [[ ! -z "$1" && "generate" = $1 ]]; then
         exit 1
     fi
 else
-  echo "This script supports the request, deploy, revert, check, and generate commands."
+  echo "This script supports the request, deploy, revert, check, and domains commands."
   exit 1
 fi
